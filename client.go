@@ -2,9 +2,9 @@ package porkbun
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 )
@@ -93,10 +93,7 @@ func WithHttpClient(httpClient HttpClient) Option {
 	}
 }
 
-// Do sends an HTTP request and return an HTTP response.
-// It automatically sends the APIKey and SecretAPIKey in the request body on
-// your behalf.
-func (c *client) Do(req *http.Request) (*http.Response, error) {
+func (c *client) withAuthentication(body []byte) ([]byte, error) {
 	if c.apiKey == "" {
 		return nil, MissingAccessKeyError{Key: PORKBUN_API_KEY}
 	}
@@ -107,11 +104,8 @@ func (c *client) Do(req *http.Request) (*http.Response, error) {
 
 	var orig map[string]interface{}
 
-	if req.Body != nil {
-		defer req.Body.Close()
-
-		decoder := json.NewDecoder(req.Body)
-		if err := decoder.Decode(&orig); err != nil {
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &orig); err != nil {
 			return nil, fmt.Errorf("could not unmarshal body, %w", err)
 		}
 	}
@@ -129,12 +123,20 @@ func (c *client) Do(req *http.Request) (*http.Response, error) {
 	// Marshal new body
 	newBody, err := json.Marshal(newMap)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("err marshaling json, %w", err)
 	}
 
-	// Set new request body
-	req.Body = io.NopCloser(bytes.NewReader(newBody))
-	req.ContentLength = int64(len(newBody))
+	return newBody, nil
+}
 
+func (c *client) do(ctx context.Context, endpoint string, body []byte) (*http.Response, error) {
+	req, err := http.NewRequest(
+		http.MethodPost,
+		fmt.Sprintf("%s/%s", c.baseUrl, endpoint),
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("err creating new request, %w", err)
+	}
 	return c.client.Do(req)
 }
