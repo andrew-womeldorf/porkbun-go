@@ -111,8 +111,8 @@ func (c *client) withAuthentication(body []byte) ([]byte, error) {
 	}
 
 	newMap := map[string]interface{}{
-		"apiKey":    c.apiKey,
-		"secretKey": c.secretKey,
+		"apikey":       c.apiKey,
+		"secretapikey": c.secretKey,
 	}
 
 	// Add original body

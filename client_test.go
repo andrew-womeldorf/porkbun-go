@@ -33,7 +33,7 @@ func TestClientSetHttpClient(t *testing.T) {
 // correctly.
 func TestAccessKeyHandlers(t *testing.T) {
 	apiKey := "apikey"
-	secretKey := "secretkey"
+	secretKey := "secretapikey"
 
 	testCases := []struct {
 		msg       string
@@ -70,7 +70,7 @@ func TestAccessKeyHandlers(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				want := fmt.Sprintf(`{"apiKey":"%s","secretKey":"%s"}`, apiKey, secretKey)
+				want := fmt.Sprintf(`{"apikey":"%s","secretapikey":"%s"}`, apiKey, secretKey)
 
 				if string(body) != want {
 					t.Fatalf("got %s, want %s", string(body), want)
