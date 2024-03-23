@@ -6,25 +6,18 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"strings"
 
 	"github.com/andrew-womeldorf/porkbun-go"
 	"github.com/spf13/cobra"
 )
 
-var domain string
-
 func initDnsCmd() {
 	dnsCmd.AddCommand(dnsCreateCmd)
 
-	dnsCmd.PersistentFlags().StringVarP(&domain, "domain", "d", "", "domain name")
-	cobra.MarkFlagRequired(dnsCmd.PersistentFlags(), "domain")
-
 	dnsCreateFlags := dnsCreateCmd.Flags()
-	dnsCreateFlags.StringP("subdomain", "s", "", "subdomain for the record. Leave blank to create a record on the root domain")
 	dnsCreateFlags.String("ttl", "600", "time to live for the record")
 	dnsCreateFlags.String("priority", "", "priority of the record for those that support it")
-	cobra.MarkFlagRequired(dnsCreateFlags, "type")
-	cobra.MarkFlagRequired(dnsCreateFlags, "content")
 }
 
 var dnsCmd = &cobra.Command{
@@ -36,9 +29,14 @@ var dnsCmd = &cobra.Command{
 }
 
 var dnsCreateCmd = &cobra.Command{
-	Use:   "create TYPE CONTENT",
+	Use:   "create DOMAIN TYPE CONTENT",
 	Short: "Create a new DNS entry",
-	Args:  cobra.ExactArgs(2),
+	Long: `Create a new DNS entry.
+
+DOMAIN is the complete domain, such as 'foo.example.com', where 'foo' is the record entry on the 'example.com' domain.
+TYPE is the type of record being created, such as A, AAAA, TXT, MX...
+CONTENT is the answer for the record.`,
+	Args: cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		priority, err := cmd.Flags().GetString("priority")
@@ -46,20 +44,20 @@ var dnsCreateCmd = &cobra.Command{
 			log.Fatal(fmt.Errorf("err getting priority var, %w", err))
 		}
 
-		subdomain, err := cmd.Flags().GetString("subdomain")
-		if err != nil {
-			log.Fatal(fmt.Errorf("err getting subdomain var, %w", err))
-		}
-
 		ttl, err := cmd.Flags().GetString("ttl")
 		if err != nil {
-			log.Fatal(fmt.Errorf("err getting ttl var, %w", err))
+			log.Fatal(fmt.Errorf("err getting ttl var, %v", err))
+		}
+
+		sub, dom, err := ParseDomain(args[0])
+		if err != nil {
+			log.Fatal(fmt.Errorf("err parsing domain, %v", err))
 		}
 
 		req := &porkbun.CreateDnsRecordRequest{
-			Name:     subdomain,
-			Type:     args[0],
-			Content:  args[1],
+			Name:     sub,
+			Type:     args[1],
+			Content:  args[2],
 			TTL:      ttl,
 			Priority: priority,
 		}
@@ -69,9 +67,9 @@ var dnsCreateCmd = &cobra.Command{
 			log.Fatal(fmt.Errorf("err creating porkbun client, %w", err))
 		}
 
-		slog.Debug("Sending request", "params", req, "domain", domain)
+		slog.Debug("Sending request", "params", req, "domain", dom)
 
-		res, err := client.CreateDnsRecord(ctx, domain, req)
+		res, err := client.CreateDnsRecord(ctx, dom, req)
 		if err != nil {
 			log.Fatal(fmt.Errorf("err creating dns record, %w", err))
 		}
@@ -82,4 +80,32 @@ var dnsCreateCmd = &cobra.Command{
 		}
 		fmt.Println(string(resBytes))
 	},
+}
+
+// ParseDomain takes a full domain as an input, and return the subdomain, the
+// domain, and an error.
+//
+// "example.com" -> "", "example.com", nil
+// "foo.example.com" -> "foo", "example.com", nil
+// "*.example.com" -> "*", "example.com", nil
+// "foo.bar.example.com" -> "foo.bar", "example.com", nil
+func ParseDomain(domain string) (string, string, error) {
+	// Split on "."
+	parts := strings.Split(domain, ".")
+
+	// Handle error cases
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("invalid domain %s", domain)
+	}
+
+	// The domain is the last two parts
+	dom := strings.Join(parts[len(parts)-2:], ".")
+
+	// The subdomain is everything before the last two parts
+	var sub string
+	if len(parts) > 2 {
+		sub = strings.Join(parts[:len(parts)-2], ".")
+	}
+
+	return sub, dom, nil
 }
