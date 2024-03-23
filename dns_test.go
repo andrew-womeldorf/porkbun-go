@@ -11,7 +11,7 @@ import (
 )
 
 func TestDns(t *testing.T) {
-	t.Run("", func(t *testing.T) {
+	t.Run("create", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `{"status": "SUCCESS", "id": 1234}`)
 		}))

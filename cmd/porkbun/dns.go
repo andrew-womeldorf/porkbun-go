@@ -14,6 +14,7 @@ import (
 
 func initDnsCmd() {
 	dnsCmd.AddCommand(dnsCreateCmd)
+	dnsCmd.AddCommand(dnsListCmd)
 
 	dnsCreateFlags := dnsCreateCmd.Flags()
 	dnsCreateFlags.String("ttl", "600", "time to live for the record")
@@ -67,11 +68,43 @@ CONTENT is the answer for the record.`,
 			log.Fatal(fmt.Errorf("err creating porkbun client, %w", err))
 		}
 
-		slog.Debug("Sending request", "params", req, "domain", dom)
+		slog.Debug("Sending create request", "params", req, "domain", dom)
 
 		res, err := client.CreateDnsRecord(ctx, dom, req)
 		if err != nil {
 			log.Fatal(fmt.Errorf("err creating dns record, %w", err))
+		}
+
+		resBytes, err := json.Marshal(res)
+		if err != nil {
+			log.Fatal(fmt.Errorf("error marshaling response to JSON, %w", err))
+		}
+		fmt.Println(string(resBytes))
+	},
+}
+
+var dnsListCmd = &cobra.Command{
+	Use:   "list DOMAIN",
+	Short: "List entries for a domain",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := context.Background()
+
+		_, dom, err := ParseDomain(args[0])
+		if err != nil {
+			log.Fatal(fmt.Errorf("err parsing domain, %v", err))
+		}
+
+		client, err := porkbun.NewClient()
+		if err != nil {
+			log.Fatal(fmt.Errorf("err creating porkbun client, %w", err))
+		}
+
+		slog.Debug("Sending list request", "domain", dom)
+
+		res, err := client.ListDnsRecords(ctx, dom)
+		if err != nil {
+			log.Fatal(fmt.Errorf("err listing dns records, %w", err))
 		}
 
 		resBytes, err := json.Marshal(res)

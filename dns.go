@@ -16,6 +16,16 @@ func (e *ApiError) Error() string {
 	return fmt.Sprintf("API error %d: %s", e.Code, e.Body)
 }
 
+type Record struct {
+	Id       string `json:"id"`
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Content  string `json:"content"`
+	TTL      string `json:"ttl"`
+	Priority string `json:"prio"`
+	Noes     string `json:"notes"`
+}
+
 type CreateDnsRecordRequest struct {
 	// The subdomain for the record being created, not including the domain
 	// itself. Leave blank to create a record on the root domain. Use * to
@@ -88,6 +98,32 @@ func (c *client) CreateDnsRecord(ctx context.Context, domain string, params *Cre
 	}
 
 	var response CreateDnsRecordResponse
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&response); err != nil {
+		return nil, fmt.Errorf("could not unmarshal response body, %w", err)
+	}
+
+	return &response, nil
+}
+
+type ListDnsRecordsResponse struct {
+	Status  string   `json:"status"`
+	Records []Record `json:"records"`
+}
+
+func (c *client) ListDnsRecords(ctx context.Context, domain string) (*ListDnsRecordsResponse, error) {
+	body, err := c.withAuthentication(nil)
+	if err != nil {
+		return nil, fmt.Errorf("err adding authentication, %w", err)
+	}
+
+	res, err := c.do(ctx, fmt.Sprintf("/api/json/v3/dns/retrieve/%s", domain), body)
+	if err != nil {
+		return nil, fmt.Errorf("err retrieving dns records, %w", err)
+	}
+	defer res.Body.Close()
+
+	var response ListDnsRecordsResponse
 	decoder := json.NewDecoder(res.Body)
 	if err := decoder.Decode(&response); err != nil {
 		return nil, fmt.Errorf("could not unmarshal response body, %w", err)
