@@ -25,7 +25,7 @@ func TestDns(t *testing.T) {
 			porkbun.WithBaseUrl(server.URL),
 		)
 
-		res, err := client.CreateDnsRecord(ctx, "example.com", &porkbun.CreateDnsRecordRequest{
+		res, err := client.CreateDnsRecord(ctx, "example.com", &porkbun.Record{
 			Name:    "www",
 			Type:    "A",
 			Content: "10.0.0.1",

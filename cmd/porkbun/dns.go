@@ -15,6 +15,7 @@ import (
 func initDnsCmd() {
 	dnsCmd.AddCommand(dnsCreateCmd)
 	dnsCmd.AddCommand(dnsListCmd)
+	dnsCmd.AddCommand(dnsGetCmd)
 
 	dnsCreateFlags := dnsCreateCmd.Flags()
 	dnsCreateFlags.String("ttl", "600", "time to live for the record")
@@ -55,7 +56,7 @@ CONTENT is the answer for the record.`,
 			log.Fatal(fmt.Errorf("err parsing domain, %v", err))
 		}
 
-		req := &porkbun.CreateDnsRecordRequest{
+		req := &porkbun.Record{
 			Name:     sub,
 			Type:     args[1],
 			Content:  args[2],
@@ -102,7 +103,7 @@ var dnsListCmd = &cobra.Command{
 
 		slog.Debug("Sending list request", "domain", dom)
 
-		res, err := client.ListDnsRecords(ctx, dom)
+		res, err := client.ListDnsRecords(ctx, dom, "", "")
 		if err != nil {
 			log.Fatal(fmt.Errorf("err listing dns records, %w", err))
 		}
@@ -110,6 +111,42 @@ var dnsListCmd = &cobra.Command{
 		resBytes, err := json.Marshal(res)
 		if err != nil {
 			log.Fatal(fmt.Errorf("error marshaling response to JSON, %w", err))
+		}
+		fmt.Println(string(resBytes))
+	},
+}
+
+var dnsGetCmd = &cobra.Command{
+	Use:   "get DOMAIN TYPE",
+	Short: "List DNS entries by type",
+	Long: `List DNS entries by type.
+
+The API allows lookups of a record by the subdomain and type. This does not
+find all entries for a type, but finds a single record.`,
+	Args: cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := context.Background()
+
+		sub, dom, err := ParseDomain(args[0])
+		if err != nil {
+			log.Fatal(fmt.Errorf("err parsing domain, %v", err))
+		}
+
+		client, err := porkbun.NewClient()
+		if err != nil {
+			log.Fatal(fmt.Errorf("err creating porkbun client, %v", err))
+		}
+
+		slog.Debug("Sending list request", "domain", dom, "sub", sub, "type", args[1])
+
+		res, err := client.ListDnsRecords(ctx, dom, sub, args[1])
+		if err != nil {
+			log.Fatal(fmt.Errorf("err listing dns records, %v", err))
+		}
+
+		resBytes, err := json.Marshal(res)
+		if err != nil {
+			log.Fatal(fmt.Errorf("error marshaling response to JSON, %v", err))
 		}
 		fmt.Println(string(resBytes))
 	},

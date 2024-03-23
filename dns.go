@@ -17,16 +17,9 @@ func (e *ApiError) Error() string {
 }
 
 type Record struct {
-	Id       string `json:"id"`
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Content  string `json:"content"`
-	TTL      string `json:"ttl"`
-	Priority string `json:"prio"`
-	Noes     string `json:"notes"`
-}
+	Id    string `json:"id"`
+	Notes string `json:"notes"`
 
-type CreateDnsRecordRequest struct {
 	// The subdomain for the record being created, not including the domain
 	// itself. Leave blank to create a record on the root domain. Use * to
 	// create a wildcard record.
@@ -58,10 +51,15 @@ type CreateDnsRecordResponse struct {
 	ID int `json:"id"`
 }
 
+type DnsRecordsResponse struct {
+	Status  string   `json:"status"`
+	Records []Record `json:"records"`
+}
+
 // CreateDnsRecord creates a DNS entry in Porkbun.
 //
 // https://porkbun.com/api/json/v3/documentation#DNS%20Create%20Record
-func (c *client) CreateDnsRecord(ctx context.Context, domain string, params *CreateDnsRecordRequest) (*CreateDnsRecordResponse, error) {
+func (c *client) CreateDnsRecord(ctx context.Context, domain string, params *Record) (*CreateDnsRecordResponse, error) {
 	reqBody, err := json.Marshal(params)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal params, %w", err)
@@ -106,24 +104,50 @@ func (c *client) CreateDnsRecord(ctx context.Context, domain string, params *Cre
 	return &response, nil
 }
 
-type ListDnsRecordsResponse struct {
-	Status  string   `json:"status"`
-	Records []Record `json:"records"`
-}
-
-func (c *client) ListDnsRecords(ctx context.Context, domain string) (*ListDnsRecordsResponse, error) {
+// ListDnsRecords returns a list of DNS records.
+// Get all available records by leaving the subdomain and recordType as empty.
+// Find a subset of records by providing the subdomain and type.
+func (c *client) ListDnsRecords(ctx context.Context, domain, subdomain, recordType string) (*DnsRecordsResponse, error) {
 	body, err := c.withAuthentication(nil)
 	if err != nil {
 		return nil, fmt.Errorf("err adding authentication, %w", err)
 	}
 
-	res, err := c.do(ctx, fmt.Sprintf("/api/json/v3/dns/retrieve/%s", domain), body)
+	var url string
+	if recordType != "" {
+		url = fmt.Sprintf("/api/json/v3/dns/retrieveByNameType/%s/%s/%s", domain, recordType, subdomain)
+	} else {
+		url = fmt.Sprintf("/api/json/v3/dns/retrieve/%s", domain)
+	}
+
+	res, err := c.do(ctx, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("err retrieving dns records, %w", err)
 	}
 	defer res.Body.Close()
 
-	var response ListDnsRecordsResponse
+	var response DnsRecordsResponse
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&response); err != nil {
+		return nil, fmt.Errorf("could not unmarshal response body, %w", err)
+	}
+
+	return &response, nil
+}
+
+func (c *client) GetDnsRecordById(ctx context.Context, domain string, id int) (*DnsRecordsResponse, error) {
+	body, err := c.withAuthentication(nil)
+	if err != nil {
+		return nil, fmt.Errorf("err adding authentication, %w", err)
+	}
+
+	res, err := c.do(ctx, fmt.Sprintf("/api/json/v3/dns/retrieve/%s/%d", domain, id), body)
+	if err != nil {
+		return nil, fmt.Errorf("err retrieving dns record, %w", err)
+	}
+	defer res.Body.Close()
+
+	var response DnsRecordsResponse
 	decoder := json.NewDecoder(res.Body)
 	if err := decoder.Decode(&response); err != nil {
 		return nil, fmt.Errorf("could not unmarshal response body, %w", err)
