@@ -47,13 +47,20 @@ type CreateDnsRecordResponse struct {
 	// processed.
 	Status string `json:"status"`
 
-	// The ID of the record created.
-	ID int `json:"id"`
+	// The Id of the record created.
+	//
+	// Creating a record, the Id returned is an int, but every other method
+	// expects Id to be a string. This is accomodating for the upstream API...
+	Id int `json:"id"`
 }
 
 type DnsRecordsResponse struct {
 	Status  string   `json:"status"`
 	Records []Record `json:"records"`
+}
+
+type StatusResponse struct {
+	Status string `json:"status"`
 }
 
 // CreateDnsRecord creates a DNS entry in Porkbun.
@@ -148,6 +155,144 @@ func (c *client) GetDnsRecordById(ctx context.Context, domain string, id int) (*
 	defer res.Body.Close()
 
 	var response DnsRecordsResponse
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&response); err != nil {
+		return nil, fmt.Errorf("could not unmarshal response body, %w", err)
+	}
+
+	return &response, nil
+}
+
+// ModifyDnsRecord changes a DNS entry in Porkbun.
+//
+// Only Content, TTL, and Priority are necessary fields on the record.
+//
+// If record.Id is not empty, then modify a record found by the provided ID.
+// Otherwise, the record will be looked up by the subdomain and type.
+//
+// https://porkbun.com/api/json/v3/documentation#DNS%20Edit%20Record%20by%20Domain%20and%20ID
+func (c *client) ModifyDnsRecord(ctx context.Context, domain string, record *Record) (*StatusResponse, error) {
+	reqBody, err := json.Marshal(record)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal record, %w", err)
+	}
+
+	body, err := c.withAuthentication(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("err adding authentication, %w", err)
+	}
+
+	var url string
+	if record.Id != "" {
+		url = fmt.Sprintf("/api/json/v3/dns/edit/%s/%s", domain, record.Id)
+	} else {
+		if record.Type == "" {
+			return nil, fmt.Errorf("record.Type must be set to modify this entry")
+		}
+		url = fmt.Sprintf("/api/json/v3/dns/editByNameType/%s/%s/%s", domain, record.Type, record.Name)
+	}
+
+	res, err := c.do(ctx, url, body)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"err editing dns record %q %q %q %q, %w",
+			record.Id,
+			record.Name,
+			record.Type,
+			record.Content,
+			err,
+		)
+	}
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		// Read response body
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		// Return custom error
+		return nil, &ApiError{
+			Code: res.StatusCode,
+			Body: string(body),
+		}
+	}
+
+	var response StatusResponse
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&response); err != nil {
+		return nil, fmt.Errorf("could not unmarshal response body, %w", err)
+	}
+
+	return &response, nil
+}
+
+// DeleteDnsRecordById deletes a DNS entry in Porkbun, looking up by id.
+//
+// https://porkbun.com/api/json/v3/documentation#DNS%20Delete%20Record%20by%20Domain%20and%20ID
+func (c *client) DeleteDnsRecordById(ctx context.Context, domain, id string) (*StatusResponse, error) {
+	body, err := c.withAuthentication(nil)
+	if err != nil {
+		return nil, fmt.Errorf("err adding authentication, %w", err)
+	}
+
+	res, err := c.do(ctx, fmt.Sprintf("/api/json/v3/dns/delete/%s/%s", domain, id), body)
+	if err != nil {
+		return nil, fmt.Errorf("err deleting dns record %q, %w", id, err)
+	}
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		// Read response body
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		// Return custom error
+		return nil, &ApiError{
+			Code: res.StatusCode,
+			Body: string(body),
+		}
+	}
+
+	var response StatusResponse
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&response); err != nil {
+		return nil, fmt.Errorf("could not unmarshal response body, %w", err)
+	}
+
+	return &response, nil
+}
+
+// DeleteDnsRecordByLookup deletes a DNS entry in Porkbun, looking up by subdomain and record type.
+//
+// https://porkbun.com/api/json/v3/documentation#DNS%20Delete%20Records%20by%20Domain,%20Subdomain%20and%20Type
+func (c *client) DeleteDnsRecordByLookup(ctx context.Context, domain, subdomain, recordType string) (*StatusResponse, error) {
+	body, err := c.withAuthentication(nil)
+	if err != nil {
+		return nil, fmt.Errorf("err adding authentication, %w", err)
+	}
+
+	res, err := c.do(ctx, fmt.Sprintf("/api/json/v3/dns/deleteByNameType/%s/%s/%s", domain, recordType, subdomain), body)
+	if err != nil {
+		return nil, fmt.Errorf("err deleting dns record %q, %q, %w", subdomain, recordType, err)
+	}
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		// Read response body
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		// Return custom error
+		return nil, &ApiError{
+			Code: res.StatusCode,
+			Body: string(body),
+		}
+	}
+
+	var response StatusResponse
 	decoder := json.NewDecoder(res.Body)
 	if err := decoder.Decode(&response); err != nil {
 		return nil, fmt.Errorf("could not unmarshal response body, %w", err)

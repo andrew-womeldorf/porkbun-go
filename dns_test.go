@@ -38,8 +38,8 @@ func TestDns(t *testing.T) {
 			t.Errorf("got %s, want %s", res.Status, "SUCCESS")
 		}
 
-		if res.ID != 1234 {
-			t.Errorf("got %d, want %d", res.ID, 1234)
+		if res.Id != 1234 {
+			t.Errorf("got %d, want %d", res.Id, 1234)
 		}
 	})
 }
