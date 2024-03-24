@@ -66,7 +66,7 @@ type StatusResponse struct {
 // CreateDnsRecord creates a DNS entry in Porkbun.
 //
 // https://porkbun.com/api/json/v3/documentation#DNS%20Create%20Record
-func (c *client) CreateDnsRecord(ctx context.Context, domain string, params *Record) (*CreateDnsRecordResponse, error) {
+func (c *Client) CreateDnsRecord(ctx context.Context, domain string, params *Record) (*CreateDnsRecordResponse, error) {
 	reqBody, err := json.Marshal(params)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal params, %w", err)
@@ -114,7 +114,7 @@ func (c *client) CreateDnsRecord(ctx context.Context, domain string, params *Rec
 // ListDnsRecords returns a list of DNS records.
 // Get all available records by leaving the subdomain and recordType as empty.
 // Find a subset of records by providing the subdomain and type.
-func (c *client) ListDnsRecords(ctx context.Context, domain, subdomain, recordType string) (*DnsRecordsResponse, error) {
+func (c *Client) ListDnsRecords(ctx context.Context, domain, subdomain, recordType string) (*DnsRecordsResponse, error) {
 	body, err := c.withAuthentication(nil)
 	if err != nil {
 		return nil, fmt.Errorf("err adding authentication, %w", err)
@@ -142,7 +142,7 @@ func (c *client) ListDnsRecords(ctx context.Context, domain, subdomain, recordTy
 	return &response, nil
 }
 
-func (c *client) GetDnsRecordById(ctx context.Context, domain string, id int) (*DnsRecordsResponse, error) {
+func (c *Client) GetDnsRecordById(ctx context.Context, domain string, id int) (*DnsRecordsResponse, error) {
 	body, err := c.withAuthentication(nil)
 	if err != nil {
 		return nil, fmt.Errorf("err adding authentication, %w", err)
@@ -171,7 +171,7 @@ func (c *client) GetDnsRecordById(ctx context.Context, domain string, id int) (*
 // Otherwise, the record will be looked up by the subdomain and type.
 //
 // https://porkbun.com/api/json/v3/documentation#DNS%20Edit%20Record%20by%20Domain%20and%20ID
-func (c *client) ModifyDnsRecord(ctx context.Context, domain string, record *Record) (*StatusResponse, error) {
+func (c *Client) ModifyDnsRecord(ctx context.Context, domain string, record *Record) (*StatusResponse, error) {
 	reqBody, err := json.Marshal(record)
 	if err != nil {
 		return nil, fmt.Errorf("could not marshal record, %w", err)
@@ -230,7 +230,7 @@ func (c *client) ModifyDnsRecord(ctx context.Context, domain string, record *Rec
 // DeleteDnsRecordById deletes a DNS entry in Porkbun, looking up by id.
 //
 // https://porkbun.com/api/json/v3/documentation#DNS%20Delete%20Record%20by%20Domain%20and%20ID
-func (c *client) DeleteDnsRecordById(ctx context.Context, domain, id string) (*StatusResponse, error) {
+func (c *Client) DeleteDnsRecordById(ctx context.Context, domain, id string) (*StatusResponse, error) {
 	body, err := c.withAuthentication(nil)
 	if err != nil {
 		return nil, fmt.Errorf("err adding authentication, %w", err)
@@ -267,7 +267,7 @@ func (c *client) DeleteDnsRecordById(ctx context.Context, domain, id string) (*S
 // DeleteDnsRecordByLookup deletes a DNS entry in Porkbun, looking up by subdomain and record type.
 //
 // https://porkbun.com/api/json/v3/documentation#DNS%20Delete%20Records%20by%20Domain,%20Subdomain%20and%20Type
-func (c *client) DeleteDnsRecordByLookup(ctx context.Context, domain, subdomain, recordType string) (*StatusResponse, error) {
+func (c *Client) DeleteDnsRecordByLookup(ctx context.Context, domain, subdomain, recordType string) (*StatusResponse, error) {
 	body, err := c.withAuthentication(nil)
 	if err != nil {
 		return nil, fmt.Errorf("err adding authentication, %w", err)

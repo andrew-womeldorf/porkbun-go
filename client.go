@@ -36,9 +36,9 @@ type HttpClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-type Option func(*client) error
+type Option func(*Client) error
 
-type client struct {
+type Client struct {
 	apiKey    string
 	secretKey string
 	baseUrl   string
@@ -47,8 +47,8 @@ type client struct {
 
 // NewClient creates a new porkbun client.
 // By default, it
-func NewClient(options ...Option) (*client, error) {
-	c := &client{
+func NewClient(options ...Option) (*Client, error) {
+	c := &Client{
 		apiKey:    os.Getenv(PORKBUN_API_KEY),
 		secretKey: os.Getenv(PORKBUN_SECRET_KEY),
 		baseUrl:   "https://porkbun.com",
@@ -66,34 +66,34 @@ func NewClient(options ...Option) (*client, error) {
 }
 
 func WithApiKey(key string) Option {
-	return func(c *client) error {
+	return func(c *Client) error {
 		c.apiKey = key
 		return nil
 	}
 }
 
 func WithSecretKey(key string) Option {
-	return func(c *client) error {
+	return func(c *Client) error {
 		c.secretKey = key
 		return nil
 	}
 }
 
 func WithBaseUrl(url string) Option {
-	return func(c *client) error {
+	return func(c *Client) error {
 		c.baseUrl = url
 		return nil
 	}
 }
 
 func WithHttpClient(httpClient HttpClient) Option {
-	return func(c *client) error {
+	return func(c *Client) error {
 		c.client = httpClient
 		return nil
 	}
 }
 
-func (c *client) withAuthentication(body []byte) ([]byte, error) {
+func (c *Client) withAuthentication(body []byte) ([]byte, error) {
 	if c.apiKey == "" {
 		return nil, MissingAccessKeyError{Key: PORKBUN_API_KEY}
 	}
@@ -129,7 +129,7 @@ func (c *client) withAuthentication(body []byte) ([]byte, error) {
 	return newBody, nil
 }
 
-func (c *client) do(ctx context.Context, endpoint string, body []byte) (*http.Response, error) {
+func (c *Client) do(ctx context.Context, endpoint string, body []byte) (*http.Response, error) {
 	req, err := http.NewRequest(
 		http.MethodPost,
 		fmt.Sprintf("%s/%s", c.baseUrl, endpoint),

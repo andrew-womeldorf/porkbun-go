@@ -14,7 +14,7 @@ type PingResponse struct {
 // Ping tests communication with the API using the ping endpoint. The ping
 // endpoint will also return your IP address, this can be handy when building
 // dynamic DNS clients.
-func (c *client) Ping(ctx context.Context) (*PingResponse, error) {
+func (c *Client) Ping(ctx context.Context) (*PingResponse, error) {
 	body, err := c.withAuthentication(nil)
 	if err != nil {
 		return nil, fmt.Errorf("err adding authentication, %w", err)
