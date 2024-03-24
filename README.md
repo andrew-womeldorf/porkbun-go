@@ -41,25 +41,25 @@ for library docs.
 package main
 
 import (
-    "fmt"
+	"fmt"
 
-    "github.com/andrew-womeldorf/porkbun-go"
+	"github.com/andrew-womeldorf/porkbun-go"
 )
 
 func main() {
-    client := porkbun.NewClient(
-        porkbun.WithApiKey("pk1_0000000000000000000000000000000000000000000000000000000000000000"),
-        porkbun.WithSecretKey("sk1_0000000000000000000000000000000000000000000000000000000000000000"),
-    )
+	client := porkbun.NewClient(
+		porkbun.WithApiKey("pk1_0000000000000000000000000000000000000000000000000000000000000000"),
+		porkbun.WithSecretKey("sk1_0000000000000000000000000000000000000000000000000000000000000000"),
+	)
 
-    // alternatively, if environment variables are set:
-    // client := porkbun.NewClient()
+	// alternatively, if environment variables are set:
+	// client := porkbun.NewClient()
 
 	res, err := client.Ping(ctx)
 	if err != nil {
 		t.Fatalf("got %s, want nil", err)
 	}
 
-    fmt.Println(res.Status, res.YourIP)
+	fmt.Println(res.Status, res.YourIP)
 }
 ```
