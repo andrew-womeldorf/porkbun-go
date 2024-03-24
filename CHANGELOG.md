@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2024-03-24
-
+## [0.1.1] - 2024-03-24
 ### Added
+- Github Releases
 
+## [0.1.0] - 2024-03-24
+### Added
 - DNS management
 
-[unreleased]: https://github.com/andrew-womeldorf/porkbun-go/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/andrew-womeldorf/porkbun-go/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/andrew-womeldorf/porkbun-go/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/andrew-womeldorf/porkbun-go/releases/tag/v0.1.0

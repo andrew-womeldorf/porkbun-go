@@ -10,6 +10,9 @@ management.
 go install github.com/andrew-womeldorf/porkbun-go/cmd/porkbun@latest
 ```
 
+Or download from the [Github
+Releases](https://github.com/andrew-womeldorf/porkbun-go/releases) page.
+
 ## Authentication
 
 All API calls must include valid API keys. You can create API keys at
